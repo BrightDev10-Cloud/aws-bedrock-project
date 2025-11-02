@@ -23,58 +23,58 @@ Ensure the following tools are installed and configured before you begin:
 
 ## 1. Initial Setup
 
-- Clone the repository and navigate to the root project directory:
-
-```sh
-git clone <your-repo-url>
-cd <project-root-directory>
-```
-
 ### Setting up a Python Virtual Environment
 
-Ensure you have Python 3.10 or later installed. Check your version with:
+- Ensure you have Python 3.10 or later installed. Check your version with:
 
 ```bash
     python --version
 ```
 
-Install venv if it's not already installed:
+- Install venv if it's not already installed:
 
-On Ubuntu/Debian:
+- - On Ubuntu/Debian:
 
 ```bash
 sudo apt-get install python3-venv
 ```
 
-On macOS/Windows: It should be included with Python 3.3+
-Create a new directory for your project and navigate to it:
+- - On macOS/Windows: It should be included with Python 3.3+
+    Create a new directory for your project and navigate to it:
 
 ```bash
     mkdir aws-bedrock-project
     cd aws-bedrock-project
 ```
 
-Create a new virtual environment:
+- Create a new virtual environment:
 
 ```bash
     python -m venv venv
 ```
 
-Activate the virtual environment:
+- Activate the virtual environment:
 
-On Windows:
+- - On Windows:
 
 ```bash
     venv\Scripts\activate
 ```
 
-On macOS/Linux:
+- - On macOS/Linux:
 
 ```bash
     source venv/bin/activate
 ```
 
-Your prompt should change to indicate that the virtual environment is active.
+`Your prompt should change to indicate that the virtual environment is active.`
+
+- Clone the repository and navigate to the root project directory:
+
+```sh
+    git clone <your-repo-url>
+    cd <project-root-directory>
+```
 
 ---
 
@@ -82,7 +82,7 @@ Your prompt should change to indicate that the virtual environment is active.
 
 Deploy the foundational infrastructure: VPC, Aurora Serverless Database, S3 bucket.
 
-1. Navigate to the Stack 1 directory:
+1. Navigate to the Stack 1 directory from the project root directory:
 
    ```sh
    cd stack1
