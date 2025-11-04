@@ -105,6 +105,7 @@ Deploy the foundational infrastructure: VPC, Aurora Serverless Database, S3 buck
    terraform apply
    ```
    - Review the plan and type "yes" to proceed.
+   - After the Terraform deployment is complete, note the outputs, particularly the Aurora cluster endpoint.
    - Save a screenshot of your successful Terraform apply output in the `Screenshots/` folder.
 
 ---
