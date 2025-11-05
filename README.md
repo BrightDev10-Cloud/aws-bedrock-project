@@ -83,6 +83,7 @@ sudo apt-get install python3-venv
 Due to local machine limitations such as low RAM or network restrictions, we will use Terraform Cloud to deploy the infrastructure. This approach runs Terraform in a stable, managed environment.
 
 This guide assumes you have already:
+
 1.  Signed up for a free [Terraform Cloud](https://app.terraform.io/signup/account) account.
 2.  Connected your Terraform Cloud organization to your Git provider (e.g., GitHub).
 3.  Pushed your project repository to your Git provider.
@@ -92,14 +93,16 @@ This guide assumes you have already:
 You need two separate workspaces to manage the two stacks of your project.
 
 **Workspace for Stack 1:**
+
 - **Name:** `aws-bedrock-project` (or a name of your choice)
 - **VCS Repository:** Point it to your project repository.
-- **Terraform Working Directory:** In the workspace settings (`Settings -> General`), set this to `cd13926-Building-Generative-AI-Applications-with-Amazon-Bedrock-and-Python-project-solution/stack1`.
+- **Terraform Working Directory:** In the workspace settings (`Settings -> General`), set this to `stack1`.
 
 **Workspace for Stack 2:**
+
 - **Name:** `aws-bedrock-project-stack2` (or a name of your choice)
 - **VCS Repository:** Point it to the same project repository.
-- **Terraform Working Directory:** In the workspace settings, set this to `cd13926-Building-Generative-AI-Applications-with-Amazon-Bedrock-and-Python-project-solution/stack2`.
+- **Terraform Working Directory:** In the workspace settings, set this to `stack2`.
 
 ### Step 2.2: Configure Variables
 
@@ -108,11 +111,11 @@ In **both** workspaces, you must add your AWS credentials so Terraform Cloud can
 1.  Navigate to your workspace's **Variables** tab.
 2.  Add the following under **Environment Variables**. Mark each one as **"Sensitive"**.
 
-| Key | Value |
-| :--- | :--- |
-| `AWS_ACCESS_KEY_ID` | `Your_AWS_Access_Key_ID` |
-| `AWS_SECRET_ACCESS_KEY` | `Your_AWS_Secret_Access_Key` |
-| `AWS_SESSION_TOKEN` | `Your_AWS_Session_Token` (if using temporary credentials) |
+| Key                     | Value                                                     |
+| :---------------------- | :-------------------------------------------------------- |
+| `AWS_ACCESS_KEY_ID`     | `Your_AWS_Access_Key_ID`                                  |
+| `AWS_SECRET_ACCESS_KEY` | `Your_AWS_Secret_Access_Key`                              |
+| `AWS_SESSION_TOKEN`     | `Your_AWS_Session_Token` (if using temporary credentials) |
 
 ### Step 2.3: Code Configuration
 
@@ -125,6 +128,7 @@ The deployment is a two-step process managed through the Terraform Cloud UI.
 1.  **Push Your Code:** Commit and push any changes to your Git repository's main branch. This will automatically trigger new runs in both of your workspaces.
 
 2.  **Deploy Stack 1:**
+
     - Go to your `aws-bedrock-project` (stack1) workspace in Terraform Cloud.
     - Wait for the plan to finish. Review the proposed changes.
     - Click **"Confirm & Apply"** and wait for the apply to complete successfully.
@@ -591,5 +595,3 @@ The quality and usefulness of your responses improve with more relevant and auth
 - Click **Sync**.
 
 After sync completes, the new documents will be available for retrieval in responses, making your application more comprehensive and useful.
-
-
