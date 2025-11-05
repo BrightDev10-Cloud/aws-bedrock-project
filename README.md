@@ -78,93 +78,63 @@ sudo apt-get install python3-venv
 
 ---
 
-## 2. Infrastructure Deployment (Stack 1)
+## 2. Infrastructure Deployment with Terraform Cloud
 
-Deploy the foundational infrastructure: VPC, Aurora Serverless Database, S3 bucket.
+Due to local machine limitations such as low RAM or network restrictions, we will use Terraform Cloud to deploy the infrastructure. This approach runs Terraform in a stable, managed environment.
 
-1. Navigate to the Stack 1 directory from the project root directory:
+This guide assumes you have already:
+1.  Signed up for a free [Terraform Cloud](https://app.terraform.io/signup/account) account.
+2.  Connected your Terraform Cloud organization to your Git provider (e.g., GitHub).
+3.  Pushed your project repository to your Git provider.
 
-   ```sh
-   cd stack1
-   ```
+### Step 2.1: Create and Configure Workspaces
 
-2. Initialize Terraform:
+You need two separate workspaces to manage the two stacks of your project.
 
-   ```sh
-   terraform init
-   ```
+**Workspace for Stack 1:**
+- **Name:** `aws-bedrock-project` (or a name of your choice)
+- **VCS Repository:** Point it to your project repository.
+- **Terraform Working Directory:** In the workspace settings (`Settings -> General`), set this to `cd13926-Building-Generative-AI-Applications-with-Amazon-Bedrock-and-Python-project-solution/stack1`.
 
-3. Review and adjust variables in `main.tf` as needed:
+**Workspace for Stack 2:**
+- **Name:** `aws-bedrock-project-stack2` (or a name of your choice)
+- **VCS Repository:** Point it to the same project repository.
+- **Terraform Working Directory:** In the workspace settings, set this to `cd13926-Building-Generative-AI-Applications-with-Amazon-Bedrock-and-Python-project-solution/stack2`.
 
-   - `region`: AWS region (e.g., "us-west-2")
-   - `cidr`: VPC CIDR block
-   - `cluster_identifier`: Aurora Serverless cluster name
+### Step 2.2: Configure Variables
 
-4. Deploy the infrastructure:
-   ```sh
-   terraform apply
-   ```
-   - Review the plan and type "yes" to proceed.
-   - After the Terraform deployment is complete, note the outputs, particularly the Aurora cluster endpoint.
-   - Save a screenshot of your successful Terraform apply output in the `Screenshots/` folder.
+In **both** workspaces, you must add your AWS credentials so Terraform Cloud can act on your behalf.
 
----
+1.  Navigate to your workspace's **Variables** tab.
+2.  Add the following under **Environment Variables**. Mark each one as **"Sensitive"**.
 
-## 3. Security Configuration
+| Key | Value |
+| :--- | :--- |
+| `AWS_ACCESS_KEY_ID` | `Your_AWS_Access_Key_ID` |
+| `AWS_SECRET_ACCESS_KEY` | `Your_AWS_Secret_Access_Key` |
+| `AWS_SESSION_TOKEN` | `Your_AWS_Session_Token` (if using temporary credentials) |
 
-Store your Aurora database credentials using AWS Secrets Manager.
+### Step 2.3: Code Configuration
 
-- Go to the AWS Secrets Manager console.
-- Choose "Store a new secret" > "Credentials for RDS database."
-- Enter your Aurora username and password.
-- Select the RDS database created.
-- Name and describe the secret.
-- Save a screenshot of the secret manager interface showing your RDS secret.
+The Terraform files (`main.tf` in both `stack1` and `stack2`) have been configured to use the `cloud` backend. `stack2` is also configured to use `terraform_remote_state` to read the outputs from `stack1`, ensuring the stacks are connected.
 
----
+### Step 2.4: Deploy the Infrastructure
 
-## 4. Database Preparation
+The deployment is a two-step process managed through the Terraform Cloud UI.
 
-Prepare Aurora PostgreSQL for vector storage:
+1.  **Push Your Code:** Commit and push any changes to your Git repository's main branch. This will automatically trigger new runs in both of your workspaces.
 
-- Go to the Amazon RDS console > Query Editor.
-- Connect to your Aurora database cluster.
-- Execute the following SQL from `scripts/aurora_sql.sql`:
-  ```sql
-  CREATE EXTENSION IF NOT EXISTS vector;
-  ```
-- Run:
-  ```sql
-  SELECT * FROM pg_extension;
-  ```
-- Save a screenshot showing the query results.
+2.  **Deploy Stack 1:**
+    - Go to your `aws-bedrock-project` (stack1) workspace in Terraform Cloud.
+    - Wait for the plan to finish. Review the proposed changes.
+    - Click **"Confirm & Apply"** and wait for the apply to complete successfully.
 
----
+3.  **Deploy Stack 2:**
+    - **After Stack 1 is complete**, go to your `aws-bedrock-project-stack2` (stack2) workspace.
+    - The plan will have already run. It will show that it is reading data from the `stack1` workspace.
+    - Review the plan and click **"Confirm & Apply"**.
 
-## 5. Bedrock Knowledge Base (Stack 2)
-
-Provision Amazon Bedrock Knowledge Base using Terraform.
-
-1. Navigate to Stack 2:
-
-   ```sh
-   cd ../stack2
-   ```
-
-2. Initialize Terraform:
-
-   ```sh
-   terraform init
-   ```
-
-3. Update variables in `main.tf` using outputs from Stack 1 (S3 bucket name, Aurora ARN).
-
-4. Deploy the infrastructure:
-   ```sh
-   terraform apply
-   ```
-   - Review changes and confirm ("yes").
-   - Save a screenshot of the deployed knowledge base interface.
+Your infrastructure is now deployed. You can proceed with the subsequent steps like security configuration and data preparation.
 
 ---
 
@@ -622,99 +592,4 @@ The quality and usefulness of your responses improve with more relevant and auth
 
 After sync completes, the new documents will be available for retrieval in responses, making your application more comprehensive and useful.
 
-### TroubleShooting
 
-- If you get an error like this
-
-```bash
-   1 [ERROR] vertex "provider[\"registry.terraform.io/hashicorp/aws\"]" error: timeout while waiting for
-     plugin to start
-   2 ...
-   3 [ERROR] provider: plugin process exited: ... error="signal: killed"
-```
-
-This is what it means:
-
-The log confirms that the AWS provider plugin is not just timing out; it's being forcefully "killed" by your
-operating system. This is a classic sign of a security feature on your Mac stopping the program because it's
-an executable file that was downloaded from the internet.
-
-Even though you've disabled your VPN and may not have a third-party antivirus, macOS has its own built-in
-security system (called Gatekeeper) that is likely causing this.
-
-The Solution: Manually Approve the Plugin
-
-We need to manually tell your Mac that you trust this specific plugin. Here’s how to do it:
-
-Step 1: Open the Plugin Folder
-
-Go to your terminal, make sure you are in the stack1 directory, and run this command to open the correct
-folder in Finder:
-
-1 open .terraform/providers/registry.terraform.io/hashicorp/aws/6.18.0/darwin_amd64/
-
-Step 2: Manually Run the Plugin to Approve It
-
-```bash
-1.  In the Finder window that opens, you will see an executable file named terraform-provider-aws_v6.18.0_x5.
-2.  Control-click (or right-click) on that file and select Open from the context menu.
-3.  You will see a warning dialog from macOS saying it can't verify the developer. This is expected.
-4.  Click the Open button on the dialog.
-```
-
-This action registers a security exception for the plugin. The plugin might open a terminal window and then
-immediately close or show an error, which is perfectly fine. The important part is that you've now told
-macOS to trust it.
-
-Step 3: Run Terraform Apply Again
-
-Go back to your terminal and run terraform apply one more time.
-
-```bash
-1 terraform apply
-```
-
-This should now work as expected.
-If the above steps do not resolve the issue, you can try the following alternative method using the `xattr` command:
-
-- Step 1: Navigate into the provider directory
-
-  Copy and paste this cd (change directory) command into your terminal:
-
-```bash
-   1 cd .terraform/providers/registry.terraform.io/hashicorp/aws/6.18.0/darwin_amd64/
-```
-
-Step 2: Verify the file is there
-
-Run the ls -l command to list the files. You should see terraform-provider-aws_v6.18.0_x5 in the output.
-
-```bash
-   1 ls -l
-```
-
-Step 3: Run the `xattr` command
-
-Now that you are in the correct directory, the command is much simpler. Run this:
-
-```bash
-   1 xattr -d com.apple.quarantine terraform-provider-aws_v6.18.0_x5
-```
-
-Step 4: Return to the `stack1` directory
-
-Navigate back to the stack1 directory where your main.tf file is located. The cd ../../../../../../ command
-will take you back.
-
-```bash
-   1 cd ../../../../../../
-
-```
-
-Step 5: Run Terraform Apply
-
-Now, try the apply command one more time.
-
-```bash
-   1 terraform apply
-```
