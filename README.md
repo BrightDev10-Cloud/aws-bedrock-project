@@ -6,10 +6,10 @@ This guide provides instructions for deploying a generative AI application on AW
 
 Before you begin, ensure you have the following installed and configured:
 
-*   **AWS CLI:** Configured with your AWS credentials for your target account.
-*   **Terraform:** Version 1.0.0 or later.
-*   **Python:** Version 3.8 or later.
-*   **Git & GitHub Account:** To store your code and connect to Terraform Cloud.
+- **AWS CLI:** Configured with your AWS credentials for your target account.
+- **Terraform:** Version 1.0.0 or later.
+- **Python:** Version 3.8 or later.
+- **Git & GitHub Account:** To store your code and connect to Terraform Cloud.
 
 ---
 
@@ -36,14 +36,15 @@ You need two separate workspaces to manage the two stacks of your project.
 2.  **Connect to VCS:** Connect your Terraform Cloud organization to your Git provider (e.g., GitHub).
 
 3.  **Create Workspace for Stack 1:**
-    *   Create a new workspace named `aws-bedrock-project` (or a similar name).
-    *   Link it to your project's GitHub repository.
-    *   In the workspace settings (**Settings -> General**), set the **Terraform Working Directory** to: `stack1`
+
+    - Create a new workspace named `aws-bedrock-project` (or a similar name).
+    - Link it to your project's GitHub repository.
+    - In the workspace settings (**Settings -> General**), set the **Terraform Working Directory** to: `stack1`
 
 4.  **Create Workspace for Stack 2:**
-    *   Create another new workspace named `aws-bedrock-project-stack2`.
-    *   Link it to the **same** GitHub repository.
-    *   In this workspace's settings, set the **Terraform Working Directory** to: `stack2`
+    - Create another new workspace named `aws-bedrock-project-stack2`.
+    - Link it to the **same** GitHub repository.
+    - In this workspace's settings, set the **Terraform Working Directory** to: `stack2`
 
 ### 2.2: Configure Workspace Variables
 
@@ -52,11 +53,11 @@ In **both** workspaces (`aws-bedrock-project` and `aws-bedrock-project-stack2`),
 1.  Navigate to your workspace's **Variables** tab.
 2.  Add the following under the **Environment Variables** section. Mark the secret values as **"Sensitive"**.
 
-| Key | Value |
-| :--- | :--- |
-| `AWS_ACCESS_KEY_ID` | Your AWS Access Key ID |
-| `AWS_SECRET_ACCESS_KEY` | Your AWS Secret Access Key |
-| `AWS_SESSION_TOKEN` | Your AWS Session Token (if using temporary credentials) |
+| Key                     | Value                                                   |
+| :---------------------- | :------------------------------------------------------ |
+| `AWS_ACCESS_KEY_ID`     | Your AWS Access Key ID                                  |
+| `AWS_SECRET_ACCESS_KEY` | Your AWS Secret Access Key                              |
+| `AWS_SESSION_TOKEN`     | Your AWS Session Token (if using temporary credentials) |
 
 ### 2.3: Deploy the Infrastructure
 
@@ -65,16 +66,18 @@ The deployment is a two-step process managed entirely through the Terraform Clou
 1.  **Push Your Code:** Commit and push your latest code changes to your Git repository. This automatically triggers new plans in both of your workspaces.
 
 2.  **Deploy Stack 1:**
-    *   Go to your `aws-bedrock-project` (stack1) workspace in Terraform Cloud.
-    *   Wait for the plan to finish. Review the proposed changes.
-    *   Click **"Confirm & Apply"** and wait for the apply to complete successfully.
+
+    - Go to your `aws-bedrock-project` (stack1) workspace in Terraform Cloud.
+    - Wait for the plan to finish. Review the proposed changes.
+    - Click **"Confirm & Apply"** and wait for the apply to complete successfully.
+      ![stack1_apply](stack1_apply_success.png)
 
 3.  **Deploy Stack 2:**
-    *   **After Stack 1 is complete**, go to your `aws-bedrock-project-stack2` workspace.
-    *   A plan should have already run. It will show that it is reading data from the `stack1` workspace.
-    *   Review the plan and click **"Confirm & Apply"**.
+    - **After Stack 1 is complete**, go to your `aws-bedrock-project-stack2` workspace.
+    - A plan should have already run. It will show that it is reading data from the `stack1` workspace.
+    - Review the plan and click **"Confirm & Apply"**.
 
-*Save screenshots of your successful Terraform apply logs from both workspaces.*
+_Save screenshots of your successful Terraform apply logs from both workspaces._
 
 ---
 
@@ -88,7 +91,7 @@ Store your Aurora database credentials using AWS Secrets Manager.
 4.  Select the RDS database created in Stack 1.
 5.  Name and describe the secret.
 
-*Save a screenshot of the secret manager interface showing your created RDS secret.*
+_Save a screenshot of the secret manager interface showing your created RDS secret._
 
 ---
 
@@ -104,7 +107,7 @@ Prepare Aurora PostgreSQL for vector storage.
     ```
 4.  Run `SELECT * FROM pg_extension;` to verify.
 
-*Save a screenshot showing the query results.*
+_Save a screenshot showing the query results._
 
 ---
 
@@ -120,7 +123,7 @@ Upload PDF documents to S3 and sync with your Bedrock Knowledge Base.
     ```
 4.  In the **Amazon Bedrock console**, navigate to your knowledge base, select the data source, and click **"Sync"**.
 
-*Save a screenshot of the successful data sync from the AWS Console.*
+_Save a screenshot of the successful data sync from the AWS Console._
 
 ---
 
@@ -154,7 +157,7 @@ Create a document named `temperature_top_p_explanation.pdf` or `.docx`. In 1–2
 
 ## Step 8: Final Checklist & Submission
 
-*   Create a `Screenshots/` folder and add all required screenshots.
-*   Ensure all code files are present and complete.
-*   Include the `temperature_top_p_explanation` document.
-*   Zip the entire project directory as `LastName_FirstName_ProjectSubmission.zip`.
+- Create a `Screenshots/` folder and add all required screenshots.
+- Ensure all code files are present and complete.
+- Include the `temperature_top_p_explanation` document.
+- Zip the entire project directory as `LastName_FirstName_ProjectSubmission.zip`.
