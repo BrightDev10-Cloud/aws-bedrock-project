@@ -53,11 +53,11 @@ In **both** workspaces (`aws-bedrock-project` and `aws-bedrock-project-stack2`),
 1.  Navigate to your workspace's **Variables** tab.
 2.  Add the following under the **Environment Variables** section. Mark the secret values as **"Sensitive"**.
 
-| Key                     | Value                                                   |
-| :---------------------- | :------------------------------------------------------ |
-| `AWS_ACCESS_KEY_ID`     | Your AWS Access Key ID                                  |
-| `AWS_SECRET_ACCESS_KEY` | Your AWS Secret Access Key                              |
-| `AWS_SESSION_TOKEN`     | Your AWS Session Token (if using temporary credentials) |
+| Key                     | Value                                                              |
+| :---------------------- | :----------------------------------------------------------------- |
+| `AWS_ACCESS_KEY_ID`     | Your AWS Access Key ID                                             |
+| `AWS_SECRET_ACCESS_KEY` | Your AWS Secret Access Key                                         |
+| `AWS_SESSION_TOKEN`     | Your AWS Session Token (if using temporary credentials) (optional) |
 
 ### 2.3: Deploy the Infrastructure
 
@@ -67,13 +67,76 @@ The deployment is a two-step process managed entirely through the Terraform Clou
 
 2.  **Deploy Stack 1:**
 
-    - Go to your `aws-bedrock-project` (stack1) workspace in Terraform Cloud.
-    - Wait for the plan to finish. Review the proposed changes.
-    - Click **"Confirm & Apply"** and wait for the apply to complete successfully.
-      ![stack1_apply](stack1_apply_success.png)
-      ![stack1_apply_result](stack1_apply_success_1.png)
+        - Go to your `aws-bedrock-project` (stack1) workspace in Terraform Cloud.
+        - Wait for the plan to finish or trigger a "new run" from the UI.
+        - Review the proposed changes.
+        - Click **"Confirm & Apply"** and wait for the apply to complete successfully.
+
+    ![alt text](Screenshots/stack1_apply_success_1.png)
 
 3.  **Prepare Your Aurora PostgreSQL Database" before running terraform plan/apply again for stack2.**
+
+```bash
+    stack1's aurora_serverless module automatically creates and manages the AWS Secrets Manager secret for your Aurora
+    database credentials. Therefore, you do not need to manually store them.
+```
+
+- Go to the Amazon RDS Console
+  - Open your web browser and navigate to the AWS Management Console.
+  - Search for "RDS" and select the service.
+- Locate Your Aurora Serverless Cluster
+  - In the RDS dashboard, click on "Databases" in the left navigation pane.
+  - Find your Aurora Serverless PostgreSQL cluster (likely named my-aurora-serverless or similar). Click its name to view details.
+- Open the Query Editor
+  - On the cluster details page, find and click the "Query editor" button or tab.
+  - If prompted, you may need to set up a database connection.
+- Connect to Your Database
+  - In the Query Editor connection prompt/modal:
+  - Database instance or cluster: Select your Aurora PostgreSQL cluster from the dropdown list.
+  - Database username: Use AWS Secret Manager.
+  - Secret Manager ARN: Enter Secret ARN.
+  - Database name: Enter myapp. #Change to fit your use case.
+  - Click "Connect" or "Connect to database".
+  - ![connect_to_db_modal](connect_to_db.png)
+- Get the SQL Script Content
+
+  - The following SQL commands need to be executed:
+
+  ```sql
+      CREATE EXTENSION IF NOT EXISTS vector;
+      CREATE SCHEMA IF NOT EXISTS bedrock_integration;
+      DO $$ BEGIN CREATE ROLE bedrock_user LOGIN; EXCEPTION WHEN duplicate_object THEN RAISE NOTICE 'Role already exists'; END $$;
+      GRANT ALL ON SCHEMA bedrock_integration to bedrock_user;
+      SET SESSION AUTHORIZATION bedrock_user;
+      CREATE TABLE IF NOT EXISTS bedrock_integration.bedrock_kb (
+      id uuid PRIMARY KEY,
+      embedding vector(1536),
+      chunks text,
+      metadata json
+      );
+      CREATE INDEX IF NOT EXISTS bedrock_kb_embedding_idx ON bedrock_integration.bedrock_kb USING hnsw (embedding vector_cosine_ops);
+      CREATE INDEX IF NOT EXISTS bedrock_kb_chunks_idx ON bedrock_integration.bedrock_kb USING gin (to_tsvector('simple',
+      chunks));
+  ```
+
+- Execute the SQL Commands
+  In the RDS Query Editor, paste the entire SQL content from Step 5 into the query input area.
+  Click the "Run" or "Execute" button.
+  Confirm that the editor shows a message indicating the queries were executed successfully.
+- Verify Table Creation (Optional)
+  Run a simple query to confirm the new table exists:
+
+  ```sql
+      SELECT \* FROM bedrock_integration.bedrock_kb LIMIT 1;
+  ```
+
+- ![prepare_db_success](prepare_db_success.png)
+
+```
+If the table exists, you will see column headers or an empty result set. If you see an error like "relation does not exist," the script in Step above did not run correctly.
+
+Once you have successfully executed the SQL script and confirmed the table exists, you can proceed to re-run terraform apply for Stack 2. The Bedrock Knowledge Base creation should now succeed as the required table structure will be present in the database.
+```
 
 4.  **Deploy Stack 2:**
     - **After Stack 1 is complete**, go to your `aws-bedrock-project-stack2` workspace.
@@ -81,41 +144,75 @@ The deployment is a two-step process managed entirely through the Terraform Clou
     - Review the plan and click **"Confirm & Apply"**.
     - If the plan is not already ongoing, just initiate/trigger a "new run" from the terraform cloud UI
 
-_Save screenshots of your successful Terraform apply logs from both workspaces._
+![stack2_apply_success](stack2_apply_success.png)
 
----
+## step 3 Post-Deloyment Steps
 
-## Step 3: Security Configuration
+### 0. Install Python Dependencies
 
-Store your Aurora database credentials using AWS Secrets Manager.
+Before running any Python scripts, ensure all necessary dependencies are installed:
 
-1.  Go to the **AWS Secrets Manager** console.
-2.  Choose **"Store a new secret"** > **"Credentials for RDS database."**
-3.  Enter your Aurora username and password.
-4.  Select the RDS database created in Stack 1.
-5.  Name and describe the secret.
+```bash
+pip install -r requirements.txt
+```
 
-_Save a screenshot of the secret manager interface showing your created RDS secret._
+Now that your infrastructure is provisioned, follow these steps to prepare your data and run the chat application.
 
----
+### 1. Prepare and Upload Documents to S3
 
-## Step 4: Database Preparation
+The `upload_to_s3.py` script uploads your documents to the S3 bucket created by Stack 1, which will then be ingested by the Bedrock Knowledge Base.
 
-Prepare Aurora PostgreSQL for vector storage.
-
-1.  Go to the **Amazon RDS console > Query Editor**.
-2.  Connect to your Aurora database cluster.
-3.  Execute the following SQL from `scripts/aurora_sql.sql`:
-    ```sql
-    CREATE EXTENSION IF NOT EXISTS vector;
+1.  **Place Your Documents**: Put all your PDF specification sheets (or other relevant documents) into the `spec-sheets/` folder:
     ```
-4.  Run `SELECT * FROM pg_extension;` to verify.
+    project-root/
+    └── scripts/
+        └── spec-sheets/
+            ├── your-document-1.pdf
+            └── your-document-2.pdf
+    ```
+2.  **Update S3 Bucket Name in Script**: Open `scripts/upload_s3.py` and update the `bucket_name` variable with the actual name of the S3 bucket provisioned by Stack 1.
+3.  **Run the Upload Script**: Execute the script from your terminal:
+    ```bash
+        cd scripts
+        python upload_s3.py / python3 upload_s3.py #depending on the version installed
+    ```
 
-_Save a screenshot showing the query results._
+### 2. Sync Bedrock Knowledge Base Data Source
 
----
+After uploading your documents to S3, you need to sync the Bedrock Knowledge Base to ingest them.
 
-## Step 5: S3 Data Upload & Sync
+1.  **Navigate to Bedrock Console**: Go to the AWS Management Console and search for "Bedrock".
+2.  **Select Knowledge Bases**: In the Bedrock console, click on "Knowledge bases" in the left navigation pane.
+3.  **Choose Your Knowledge Base**: Select your provisioned knowledge base (e.g., `my-bedrock-kb`).
+4.  **Sync Data Source**: Go to the "Data sources" tab, select your data source, and click the "Sync" button. Monitor the status until it shows "Active".
+
+### 3. Run the Chat Application
+
+Once the knowledge base has successfully synced and ingested your documents, you can run the Streamlit chat application.
+
+1.  **Run the App**: Execute the Streamlit application from your terminal:
+    ```bash
+    streamlit run app.py
+    ```
+    This will open the chat application in your web browser, allowing you to interact with your Bedrock Knowledge Base.
+
+## Complete chat app
+
+### Complete invoke model and knoweldge base code
+
+- Open the bedrock_utils.py file and the following functions:
+  - query_knowledge_base
+  - generate_response
+
+### Complete the prompt validation function
+
+- Open the bedrock_utils.py file and the following function:
+
+  - valid_prompt
+
+  Hint: categorize the user prompt
+
+## Step 3: S3 Data Upload & Sync
 
 Upload PDF documents to S3 and sync with your Bedrock Knowledge Base.
 
@@ -123,7 +220,7 @@ Upload PDF documents to S3 and sync with your Bedrock Knowledge Base.
 2.  Update `scripts/upload_s3.py` with your actual S3 bucket name (you can find this in the outputs of your `stack1` Terraform run).
 3.  Run the upload script:
     ```bash
-    python scripts/upload_to_s3.py
+    python3 scripts/upload_s3.py
     ```
 4.  In the **Amazon Bedrock console**, navigate to your knowledge base, select the data source, and click **"Sync"**.
 
@@ -131,15 +228,15 @@ _Save a screenshot of the successful data sync from the AWS Console._
 
 ---
 
-## Step 6: Python Integration and Application
+## Step 4: Python Integration and Application
 
 Implement the functions in `bedrock_utils.py` and run the Streamlit application.
 
-### 6.1: Implement Utility Functions
+### 4.1: Implement Utility Functions
 
 Complete the functions in `bedrock_utils.py` as described in the file's comments. This includes `query_knowledge_base`, `generate_response`, and `valid_prompt`.
 
-### 6.2: Run the Streamlit App
+### 4.2: Run the Streamlit App
 
 1.  Ensure you have Streamlit installed:
     ```bash
@@ -153,13 +250,13 @@ Complete the functions in `bedrock_utils.py` as described in the file's comments
 
 ---
 
-## Step 7: Model Parameters Explanation
+## Step 5: Model Parameters Explanation
 
 Create a document named `temperature_top_p_explanation.pdf` or `.docx`. In 1–2 paragraphs, explain how `temperature` and `top_p` affect the creativity, randomness, and diversity of large language model responses.
 
 ---
 
-## Step 8: Final Checklist & Submission
+## Step 6: Final Checklist & Submission
 
 - Create a `Screenshots/` folder and add all required screenshots.
 - Ensure all code files are present and complete.
