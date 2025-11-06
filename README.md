@@ -71,11 +71,15 @@ The deployment is a two-step process managed entirely through the Terraform Clou
     - Wait for the plan to finish. Review the proposed changes.
     - Click **"Confirm & Apply"** and wait for the apply to complete successfully.
       ![stack1_apply](stack1_apply_success.png)
+      ![stack1_apply_result](stack1_apply_success_1.png)
 
-3.  **Deploy Stack 2:**
+3.  **Prepare Your Aurora PostgreSQL Database" before running terraform plan/apply again for stack2.**
+
+4.  **Deploy Stack 2:**
     - **After Stack 1 is complete**, go to your `aws-bedrock-project-stack2` workspace.
     - A plan should have already run. It will show that it is reading data from the `stack1` workspace.
     - Review the plan and click **"Confirm & Apply"**.
+    - If the plan is not already ongoing, just initiate/trigger a "new run" from the terraform cloud UI
 
 _Save screenshots of your successful Terraform apply logs from both workspaces._
 
